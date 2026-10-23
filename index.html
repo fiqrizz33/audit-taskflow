@@ -1,1 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit TaskFlow Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .status-badge { transition: all 0.2s ease-in-out; }
+    .status-badge:hover { transform: scale(1.05); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #64748b; border-radius: 4px; }
+  </style>
+</head>
+<body id="appBody" class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased transition-colors duration-300">
 
+  <!-- Main Container -->
+  <div class="max-w-[1700px] mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- Header Section -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/80 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md transition-colors duration-300" id="mainHeader">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+            <i class="fa-solid fa-clipboard-check text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-wide" id="headerTitle">Audit TaskFlow Dashboard</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Corporate Audit Milestone Tracker & Progress Monitoring</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons & Theme Toggle -->
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <button onclick="toggleTheme()" class="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-xl border border-slate-600 transition flex items-center justify-center gap-2" id="themeBtn" title="Toggle Dark / Light Mode">
+          <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
+          <span id="themeLabel" class="hidden sm:inline">Light Mode</span>
+        </button>
+        <button onclick="openModal()" class="flex-1 md:flex-none px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus"></i> Add Entity
+        </button>
+        <button onclick="exportToCSV()" class="flex-1 md:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-csv"></i> Export CSV
+        </button>
+        <button onclick="resetData()" class="px-3 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl border border-rose-500/20 transition" title="Reset to Original Excel Dataset">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between shadow-md" id="statCard1">
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Total Entities</p>
+          <h3 id="statTotal" class="text-2xl font-bold mt-1">0</h3>
+        </div>
+        <div class="p-3 bg-blue-500/10 text-blue-400 rounded-lg"><i class="fa-solid fa-building text-lg"></i></div>
+      </div>
+      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between shadow-md" id="statCard2">
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Fully Completed</p>
+          <h3 id="statCompleted" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+        </div>
+        <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-circle-check text-lg"></i></div>
+      </div>
+      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between shadow-md" id="statCard3">
+        <div>
+          <p class="text-xs text-slate-400 font-medium">In Progress / Pending</p>
+          <h3 id="statPending" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+        </div>
+        <div class="p-3 bg-amber-500/10 text-amber-400 rounded-lg"><i class="fa-solid fa-clock text-lg"></i></div>
+      </div>
+      <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between shadow-md" id="statCard4">
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Overall Progress</p>
+          <h3 id="statProgress" class="text-2xl font-bold text-indigo-400 mt-1">0%</h3>
+        </div>
+        <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-lg"><i class="fa-solid fa-chart-pie text-lg"></i></div>
+      </div>
+    </div>
+
+    <!-- General Search & Global YE Filter -->
+    <div class="flex flex-col sm:flex-row gap-3 bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/40" id="filterBar">
+      <div class="relative flex-1">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search company name or remarks..." class="w-full bg-slate-900/80 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+      </div>
+      <select id="yeFilter" onchange="renderTable()" class="bg-slate-900/80 border border-slate-700 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500">
+        <option value="">All Year Ended (YE)</option>
+      </select>
+    </div>
+
+    <!-- Audit Data Table with Column-Level Filters -->
+    <div class="bg-slate-800/60 rounded-2xl border border-slate-700/60 shadow-xl overflow-hidden backdrop-blur-md" id="tableCard">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-900/90 text-[11px] font-semibold text-slate-400 border-b border-slate-700" id="tableHeader">
+              <th class="py-3 px-3 w-10">#</th>
+              <th class="py-3 px-4 min-w-[200px]">Company Name</th>
+              <th class="py-3 px-3">YE</th>
+              
+              <!-- Milestone Headers with Individual Filters -->
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Master Report</div>
+                <select id="filter_masterReport" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Auditor Sign</div>
+                <select id="filter_auditorReportSign" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Client Return</div>
+                <select id="filter_clientReturnedSign" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">MBRS</div>
+                <select id="filter_mbrs" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-indigo-400">5 Copies</div>
+                <select id="filter_fiveCopies" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Form C</div>
+                <select id="filter_formC" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Returns Doc</div>
+                <select id="filter_returnsDoc" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-2.5 px-2 text-center min-w-[110px]">
+                <div class="font-bold text-slate-300">Data Status</div>
+                <select id="filter_dataStatus" onchange="renderTable()" class="mt-1 bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded px-1 py-0.5 w-full focus:outline-none">
+                  <option value="">All</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="TO-DO">To-Do</option>
+                </select>
+              </th>
+
+              <th class="py-3 px-4 min-w-[170px]">Status Remarks</th>
+              <th class="py-3 px-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody" class="divide-y divide-slate-700/50 text-xs">
+            <!-- Rows rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Company Modal -->
+  <div id="companyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4" id="modalCard">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h3 class="text-sm font-bold">Add New Entity</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="addCompanyForm" onsubmit="handleAddCompany(event)" class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Company Name *</label>
+          <input type="text" id="newCompanyName" required placeholder="e.g. ACME GLOBAL SDN BHD" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Year Ended (YE) *</label>
+          <input type="date" id="newCompanyYE" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Status Remarks</label>
+          <input type="text" id="newCompanyRemark" placeholder="e.g. Pending bank statement..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-600/20">Add Company</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // Dataset Extracted from A-----CHECKLIST ALL TASK.xlsx
+    const initialDataset = [
+      { id: 1, company: "DAI HAN EQUIPMENTS SDN BHD", ye: "2026-02-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "COMPLETED", returnsDoc: "TO-DO", dataStatus: "COMPLETED", statusRemark: "" },
+      { id: 2, company: "HIGHWILL SDN BHD", ye: "2026-03-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "PENDING", statusRemark: "WAIT CINDY FORM C" },
+      { id: 3, company: "PONTISARI INTI SDN BHD", ye: "2026-02-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "COMPLETED", fiveCopies: "TO-DO", formC: "COMPLETED", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "wait signing doc return" },
+      { id: 4, company: "BELLINA BIOTECHNOLOGY RESEARCH SDN BHD", ye: "2026-03-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 5, company: "GREEN BLESSED HOTEL SDN BHD", ye: "2026-03-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "COMPLETED", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 6, company: "TRADE CERTAINTIES SDN BHD", ye: "2026-04-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 7, company: "LYS LOGISTICS SDN BHD", ye: "2026-05-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 8, company: "PARAS ZION SDN BHD", ye: "2026-05-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "NOT PICKUP YET BY CLIENT" },
+      { id: 9, company: "HAXTON LOGISTICS SDN BHD", ye: "2026-06-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "COMPLETED", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 10, company: "MARBOLOUS SDN BHD", ye: "2026-06-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 11, company: "VISTAGO SDN BHD", ye: "2026-03-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 12, company: "THE LINKS DEVELOPMENT SDN BHD", ye: "2026-06-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "already draft signing" },
+      { id: 13, company: "PG GLOBAL PROPERTY SDN BHD", ye: "2026-04-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 14, company: "TEMASEK MASTER SDN BHD", ye: "2026-03-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "COMPLETED", mbrs: "COMPLETED", fiveCopies: "COMPLETED", formC: "COMPLETED", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 15, company: "ENCOL SUPPLIES & SERVICES SDN BHD", ye: "2026-06-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 16, company: "PARAS INDAH SDN BHD", ye: "2026-06-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "PENDING", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 17, company: "ZENITH VIEW SB", ye: "2026-06-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 18, company: "PANE GLOBAL SDN BHD", ye: "2026-07-01", masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "bank" },
+      { id: 19, company: "SAR-GLORYMAX INDUSTRIES SDN BHD", ye: "2026-07-01", masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "bank" },
+      { id: 20, company: "CS INDUSTRIES SDN BHD", ye: "2026-08-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "already draft signing" },
+      { id: 21, company: "ESCOSTEP INDUSTRIES SDN BHD", ye: "2026-08-01", masterReport: "COMPLETED", auditorReportSign: "COMPLETED", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "already draft signing" },
+      { id: 22, company: "PORUM RESOURCES SDN BHD", ye: "2026-09-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 23, company: "KIBARAN HASRAT SDN BHD", ye: "2026-09-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 24, company: "BATU BEDAN QUARRY SDN BHD", ye: "2026-06-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 25, company: "BORNEO MODULARS SDN BHD", ye: "2026-06-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "refer file kuning mgt ac" },
+      { id: 26, company: "SPIRALINE SDN BHD", ye: "2026-04-01", masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "os mgt ac" },
+      { id: 27, company: "KIASAN ENTERPRISE SDN BHD", ye: "2026-04-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 28, company: "UNIQ RESOURCES SDN BHD", ye: "2026-04-01", masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "os bank statement" },
+      { id: 29, company: "ADNO RESOURCES SDN BHD", ye: "2026-10-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 30, company: "S G GLISTEN SDN BHD", ye: "2026-06-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 31, company: "CRYSTAL REALTY MARKETING SDN BHD", ye: "2026-08-01", masterReport: "PENDING", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" },
+      { id: 32, company: "CRYSTAL EQUIPMENT SDN BHD", ye: "2026-08-01", masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO", statusRemark: "" }
+    ];
+
+    const milestones = [
+      { key: "masterReport", label: "Master Report" },
+      { key: "auditorReportSign", label: "Auditor Sign" },
+      { key: "clientReturnedSign", label: "Client Return" },
+      { key: "mbrs", label: "MBRS" },
+      { key: "fiveCopies", label: "5 Copies" },
+      { key: "formC", label: "Form C" },
+      { key: "returnsDoc", label: "Returns Doc" },
+      { key: "dataStatus", label: "Data Status" }
+    ];
+
+    // Load from LocalStorage or Default
+    let auditData = JSON.parse(localStorage.getItem('audit_taskflow_data')) || initialDataset;
+
+    function saveData() {
+      localStorage.setItem('audit_taskflow_data', JSON.stringify(auditData));
+      updateStats();
+    }
+
+    function resetData() {
+      if (confirm("Reset dataset back to original Excel file status?")) {
+        auditData = JSON.parse(JSON.stringify(initialDataset));
+        saveData();
+        populateYEFilter();
+        renderTable();
+      }
+    }
+
+    function toggleStatus(id, key) {
+      const company = auditData.find(c => c.id === id);
+      if (company) {
+        const statuses = ["TO-DO", "PENDING", "COMPLETED"];
+        const currIndex = statuses.indexOf(company[key] || "TO-DO");
+        company[key] = statuses[(currIndex + 1) % statuses.length];
+        saveData();
+        renderTable();
+      }
+    }
+
+    function updateRemark(id, value) {
+      const company = auditData.find(c => c.id === id);
+      if (company) {
+        company.statusRemark = value;
+        saveData();
+      }
+    }
+
+    function deleteCompany(id) {
+      if (confirm("Delete this company entity?")) {
+        auditData = auditData.filter(c => c.id !== id);
+        saveData();
+        populateYEFilter();
+        renderTable();
+      }
+    }
+
+    function renderStatusBadge(status, onClickStr) {
+      let badgeStyle = "bg-slate-700/60 text-slate-400 border-slate-600/50";
+      let icon = "fa-minus";
+
+      if (status === "COMPLETED") {
+        badgeStyle = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+        icon = "fa-check";
+      } else if (status === "PENDING") {
+        badgeStyle = "bg-amber-500/20 text-amber-400 border-amber-500/30";
+        icon = "fa-hourglass-half";
+      }
+
+      return `<button onclick="${onClickStr}" class="status-badge px-2 py-1 rounded-md text-[10px] font-bold border ${badgeStyle} flex items-center justify-center gap-1 w-full">
+        <i class="fa-solid ${icon}"></i> ${status || 'TO-DO'}
+      </button>`;
+    }
+
+    function populateYEFilter() {
+      const select = document.getElementById('yeFilter');
+      const uniqueYEs = [...new Set(auditData.map(c => c.ye).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">All Year Ended (YE)</option>' + 
+        uniqueYEs.map(ye => `<option value="${ye}">${ye}</option>`).join('');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('auditTableBody');
+      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+      const yeVal = document.getElementById('yeFilter').value;
+
+      const filtered = auditData.filter(item => {
+        const matchesSearch = item.company.toLowerCase().includes(searchVal) || 
+                              (item.statusRemark && item.statusRemark.toLowerCase().includes(searchVal));
+        const matchesYE = !yeVal || item.ye === yeVal;
+
+        // Check per-column milestone filters
+        const matchesMilestones = milestones.every(m => {
+          const filterElem = document.getElementById(`filter_${m.key}`);
+          if (!filterElem || !filterElem.value) return true;
+          return (item[m.key] || "TO-DO") === filterElem.value;
+        });
+
+        return matchesSearch && matchesYE && matchesMilestones;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-8 text-slate-500">No matching audit records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((item, index) => {
+        return `
+          <tr class="hover:bg-slate-700/30 transition">
+            <td class="py-3 px-3 font-mono text-slate-400 text-[11px]">${index + 1}</td>
+            <td class="py-3 px-4 font-semibold text-white">${item.company}</td>
+            <td class="py-3 px-3 text-slate-400 font-mono text-[11px]">${item.ye || '-'}</td>
+            ${milestones.map(m => `
+              <td class="py-3 px-2 text-center">
+                ${renderStatusBadge(item[m.key], `toggleStatus(${item.id}, '${m.key}')`)}
+              </td>
+            `).join('')}
+            <td class="py-3 px-4">
+              <input type="text" value="${item.statusRemark || ''}" onchange="updateRemark(${item.id}, this.value)" placeholder="Add note..." class="bg-slate-900/60 border border-slate-700/60 rounded px-2 py-1 text-[11px] text-slate-300 w-full focus:border-indigo-500 focus:outline-none">
+            </td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="deleteCompany(${item.id})" class="text-slate-500 hover:text-rose-400 transition p-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      updateStats();
+    }
+
+    function updateStats() {
+      const total = auditData.length;
+      document.getElementById('statTotal').innerText = total;
+
+      let fullyCompleted = 0;
+      let totalMilestones = total * milestones.length;
+      let completedMilestones = 0;
+
+      auditData.forEach(c => {
+        let isAllDone = true;
+        milestones.forEach(m => {
+          if (c[m.key] === "COMPLETED") {
+            completedMilestones++;
+          } else {
+            isAllDone = false;
+          }
+        });
+        if (isAllDone && total > 0) fullyCompleted++;
+      });
+
+      document.getElementById('statCompleted').innerText = fullyCompleted;
+      document.getElementById('statPending').innerText = total - fullyCompleted;
+      
+      const pct = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+      document.getElementById('statProgress').innerText = pct + '%';
+    }
+
+    // Theme Switcher (Dark/Light)
+    function toggleTheme() {
+      const body = document.getElementById('appBody');
+      const isDark = body.classList.contains('bg-slate-900');
+
+      if (isDark) {
+        // Switch to Light Theme
+        body.className = "bg-slate-100 text-slate-800 min-h-screen font-sans antialiased transition-colors duration-300";
+        document.getElementById('themeIcon').className = "fa-solid fa-moon text-indigo-600";
+        document.getElementById('themeLabel').innerText = "Dark Mode";
+        localStorage.setItem('audit_theme', 'light');
+      } else {
+        // Switch to Dark Theme
+        body.className = "bg-slate-900 text-slate-100 min-h-screen font-sans antialiased transition-colors duration-300";
+        document.getElementById('themeIcon').className = "fa-solid fa-sun text-amber-400";
+        document.getElementById('themeLabel').innerText = "Light Mode";
+        localStorage.setItem('audit_theme', 'dark');
+      }
+    }
+
+    // Modal Control
+    function openModal() { document.getElementById('companyModal').classList.remove('hidden'); document.getElementById('companyModal').classList.add('flex'); }
+    function closeModal() { document.getElementById('companyModal').classList.add('hidden'); document.getElementById('companyModal').classList.remove('flex'); }
+
+    function handleAddCompany(e) {
+      e.preventDefault();
+      const newComp = {
+        id: Date.now(),
+        company: document.getElementById('newCompanyName').value.toUpperCase(),
+        ye: document.getElementById('newCompanyYE').value,
+        statusRemark: document.getElementById('newCompanyRemark').value,
+        masterReport: "TO-DO", auditorReportSign: "TO-DO", clientReturnedSign: "TO-DO", mbrs: "TO-DO", fiveCopies: "TO-DO", formC: "TO-DO", returnsDoc: "TO-DO", dataStatus: "TO-DO"
+      };
+      auditData.unshift(newComp);
+      saveData();
+      populateYEFilter();
+      renderTable();
+      closeModal();
+      document.getElementById('addCompanyForm').reset();
+    }
+
+    function exportToCSV() {
+      let csv = "ID,COMPANY NAME,YEAR ENDED,MASTER REPORT,AUDITOR REPORT SIGN,CLIENT RETURNED SIGN,MBRS,5 COPIES,FORM C,RETURNS DOC,DATA STATUS,STATUS REMARKS\n";
+      auditData.forEach(row => {
+        csv += `"${row.id}","${row.company}","${row.ye}","${row.masterReport}","${row.auditorReportSign}","${row.clientReturnedSign}","${row.mbrs}","${row.fiveCopies}","${row.formC}","${row.returnsDoc}","${row.dataStatus}","${row.statusRemark || ''}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `Audit_TaskFlow_Export_${new Date().toISOString().slice(0,10)}.csv`);
+      a.click();
+    }
+
+    // Initialize Page Theme & Table
+    if (localStorage.getItem('audit_theme') === 'light') {
+      toggleTheme();
+    }
+    populateYEFilter();
+    renderTable();
+  </script>
+</body>
+</html>
